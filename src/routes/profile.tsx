@@ -77,9 +77,9 @@ function ProfilePage() {
 
   const save = async () => {
     const digits = normalizeIndianPhone(phone);
-    if (!name.trim()) return toast.error("Name is required");
-    if (!digits) return toast.error("Enter a valid Indian mobile number");
-    if (!address.trim()) return toast.error("Address is required");
+    if (!name.trim()) return void toast.error("Name is required");
+    if (!digits) return void toast.error("Enter a valid Indian mobile number");
+    if (!address.trim()) return void toast.error("Address is required");
     setBusy(true);
     try {
       let avatarPath = profile?.avatar_path ?? null;

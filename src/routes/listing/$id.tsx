@@ -109,7 +109,7 @@ function ListingPage() {
       return;
     }
     const amount = Number(bidAmount);
-    if (!amount || amount <= 0) return toast.error("Enter a valid amount");
+    if (!amount || amount <= 0) return void toast.error("Enter a valid amount");
     setBusy(true);
     try {
       const { error } = await supabase.rpc("place_bid", { _listing_id: id, _amount: amount });

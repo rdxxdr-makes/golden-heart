@@ -5,7 +5,7 @@ import { formatINR, signedPhotoUrl, type Listing } from "@/lib/market";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
-export function ListingImage({ path, alt, className }: { path?: string; alt: string; className?: string }) {
+export function ListingImage({ path, alt, className }: { path: string | undefined; alt: string; className?: string }) {
   const [url, setUrl] = useState("");
   useEffect(() => {
     let on = true;

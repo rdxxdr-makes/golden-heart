@@ -63,9 +63,9 @@ function AuthPage() {
 
   const register = async () => {
     const digits = normalizeIndianPhone(phone);
-    if (!name.trim()) return toast.error("Please enter your name");
-    if (!digits) return toast.error("Enter a valid Indian mobile number");
-    if (!address.trim()) return toast.error("Please enter your address");
+    if (!name.trim()) return void toast.error("Please enter your name");
+    if (!digits) return void toast.error("Enter a valid Indian mobile number");
+    if (!address.trim()) return void toast.error("Please enter your address");
     setBusy(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -103,7 +103,7 @@ function AuthPage() {
 
   const signIn = async () => {
     const digits = normalizeIndianPhone(phone);
-    if (!digits) return toast.error("Enter a valid Indian mobile number");
+    if (!digits) return void toast.error("Enter a valid Indian mobile number");
     setBusy(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({

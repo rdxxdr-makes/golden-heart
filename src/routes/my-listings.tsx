@@ -83,7 +83,7 @@ function MyListingsPage() {
   const remove = async (l: Listing) => {
     if (!confirm(`Delete "${l.title}"?`)) return;
     const { error } = await supabase.from("listings").delete().eq("id", l.id);
-    if (error) return toast.error(error.message);
+    if (error) return void toast.error(error.message);
     toast.success("Listing deleted");
     refresh();
   };
@@ -91,7 +91,7 @@ function MyListingsPage() {
   const toggleSold = async (l: Listing) => {
     const next = l.status === "sold" ? "approved" : "sold";
     const { error } = await supabase.from("listings").update({ status: next }).eq("id", l.id);
-    if (error) return toast.error(error.message);
+    if (error) return void toast.error(error.message);
     toast.success(next === "sold" ? "Marked as sold" : "Marked as available");
     refresh();
   };

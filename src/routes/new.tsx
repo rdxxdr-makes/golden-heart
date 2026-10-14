@@ -69,18 +69,18 @@ function NewListingPage() {
     );
 
   const submit = async () => {
-    if (!title.trim()) return toast.error("Add a title");
-    if (!category) return toast.error("Pick a category");
-    if (!location.trim()) return toast.error("Add your general location (e.g. area, city)");
+    if (!title.trim()) return void toast.error("Add a title");
+    if (!category) return void toast.error("Pick a category");
+    if (!location.trim()) return void toast.error("Add your general location (e.g. area, city)");
     const priceNum = type === "donate" ? null : Number(price);
     if (type !== "donate" && (!priceNum || priceNum <= 0))
-      return toast.error(type === "bid" ? "Add a valid starting price" : "Add a valid price");
+      return void toast.error(type === "bid" ? "Add a valid starting price" : "Add a valid price");
     if (type === "bid") {
-      if (!deadline) return toast.error("Set a bidding deadline");
+      if (!deadline) return void toast.error("Set a bidding deadline");
       if (new Date(deadline).getTime() <= Date.now())
-        return toast.error("Deadline must be in the future");
+        return void toast.error("Deadline must be in the future");
     }
-    if (files.length === 0) return toast.error("Add at least one photo");
+    if (files.length === 0) return void toast.error("Add at least one photo");
 
     setBusy(true);
     try {
