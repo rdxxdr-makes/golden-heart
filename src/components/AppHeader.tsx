@@ -65,7 +65,7 @@ export function AppHeader() {
         <Link
           key={item.label}
           to={item.to}
-          search={"search" in item ? item.search : undefined}
+          {...("search" in item ? { search: item.search } : {})}
           className="rounded-md px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground"
           onClick={() => setOpen(false)}
         >

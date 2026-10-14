@@ -22,7 +22,7 @@ type Search = { type?: ListingType };
 
 export const Route = createFileRoute("/new")({
   validateSearch: (s: Record<string, unknown>): Search => ({
-    type: s.type === "donate" || s.type === "bid" ? s.type : "sell",
+    type: s["type"] === "donate" || s["type"] === "bid" ? (s["type"] as ListingType) : "sell",
   }),
   head: () => ({
     meta: [

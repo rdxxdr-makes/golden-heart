@@ -97,7 +97,7 @@ function AdminPage() {
       </div>
     );
 
-  const act = async (fn: () => Promise<{ error: { message: string } | null }>, ok: string) => {
+  const act = async (fn: () => PromiseLike<{ error: { message: string } | null }>, ok: string) => {
     setBusy(true);
     try {
       const { error } = await fn();
