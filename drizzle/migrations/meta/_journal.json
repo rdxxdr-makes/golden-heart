@@ -8,6 +8,13 @@
       "when": 1791983201274,
       "tag": "0000_marketplace_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792090994068,
+      "tag": "0001_restrict_bids_and_photos",
+      "breakpoints": true
     }
   ]
 }
