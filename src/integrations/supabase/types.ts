@@ -97,6 +97,21 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_pins: {
+        Row: {
+          pin_hash: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          pin_hash: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          pin_hash?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string
@@ -158,6 +173,10 @@ export type Database = {
       place_bid: {
         Args: { _amount: number; _listing_id: string }
         Returns: string
+      }
+      redeem_portal_pin: {
+        Args: { _pin: string }
+        Returns: Database["public"]["Enums"]["app_role"]
       }
       seller_phone: { Args: { _seller_id: string }; Returns: string }
     }
