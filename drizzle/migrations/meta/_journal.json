@@ -15,6 +15,13 @@
       "when": 1792090994068,
       "tag": "0001_restrict_bids_and_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792091466012,
+      "tag": "0002_portal_pin_rpc",
+      "breakpoints": true
     }
   ]
 }
