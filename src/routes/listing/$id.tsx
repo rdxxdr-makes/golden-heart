@@ -51,6 +51,7 @@ function ListingPage() {
   const { data: highestBid } = useQuery({
     queryKey: ["highest-bid", id],
     enabled: listing?.type === "bid",
+    refetchInterval: 5000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("highest_bid", { _listing_id: id });
       if (error) throw error;
