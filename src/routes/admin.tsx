@@ -2,9 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, Trash2, X } from "lucide-react";
+import { Check, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatINR, type Listing } from "@/lib/market";
+import { formatINR, normalizeIndianPhone, uploadPhoto, type Listing } from "@/lib/market";
 import { ListingImage } from "@/components/ListingCard";
 import { useMyRoles, useSession } from "@/components/AppHeader";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({

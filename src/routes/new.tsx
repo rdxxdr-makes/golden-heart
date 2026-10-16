@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { CATEGORIES, uploadPhoto, type ListingType } from "@/lib/market";
+import { CATEGORIES, normalizeIndianPhone, uploadPhoto, type ListingType } from "@/lib/market";
 import { useSession } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,8 +57,30 @@ function NewListingPage() {
   const [deadline, setDeadline] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
 
-  if (loading) return <p className="py-16 text-center text-muted-foreground">Loading…</p>;
+  // Profile fields (only needed the first time this account posts something)
+  const [pName, setPName] = useState("");
+  const [pPhone, setPPhone] = useState("");
+  const [pAddress, setPAddress] = useState("");
+  const [pAvatar, setPAvatar] = useState<File | null>(null);
+
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ["profile", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  if (loading || (userId && profileLoading))
+    return <p className="py-16 text-center text-muted-foreground">Loading…</p>;
   if (!userId)
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
@@ -65,6 +88,68 @@ function NewListingPage() {
         <Button className="mt-4" onClick={() => navigate({ to: "/auth" })}>
           Go to sign in
         </Button>
+      </div>
+    );
+
+  // First time posting? Create the profile here (browsing and bidding never need one).
+  const createProfile = async () => {
+    const digits = normalizeIndianPhone(pPhone);
+    if (!pName.trim()) return void toast.error("Please enter your name");
+    if (!digits) return void toast.error("Enter a valid Indian mobile number");
+    if (!pAddress.trim()) return void toast.error("Please enter your address");
+    setBusy(true);
+    try {
+      let avatarPath: string | null = null;
+      if (pAvatar) avatarPath = await uploadPhoto(userId, pAvatar);
+      const { error } = await supabase.from("profiles").insert({
+        id: userId,
+        name: pName.trim(),
+        address: pAddress.trim(),
+        phone: digits,
+        avatar_path: avatarPath,
+      });
+      if (error) throw error;
+      toast.success("Profile created — now post your listing!");
+      queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not create profile");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!profile)
+    return (
+      <div className="mx-auto max-w-lg px-4 py-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>Create your profile first</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              You only need a profile to post a listing. Browsing and bidding don't need one.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="pname">Full name</Label>
+              <Input id="pname" value={pName} onChange={(e) => setPName(e.target.value)} maxLength={100} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pphone">Mobile number</Label>
+              <Input id="pphone" value={pPhone} onChange={(e) => setPPhone(e.target.value)} inputMode="tel" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="paddr">Address (kept private)</Label>
+              <Textarea id="paddr" value={pAddress} onChange={(e) => setPAddress(e.target.value)} rows={2} maxLength={300} />
+            </div>
+            <div className="space-y-2">
+              <Label>Profile photo (optional)</Label>
+              <input type="file" accept="image/*" className="text-sm" onChange={(e) => setPAvatar(e.target.files?.[0] ?? null)} />
+            </div>
+            <Button className="w-full" disabled={busy} onClick={createProfile}>
+              {busy ? "Saving…" : "Create profile"}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
 
