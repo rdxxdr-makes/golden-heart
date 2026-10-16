@@ -57,8 +57,30 @@ function NewListingPage() {
   const [deadline, setDeadline] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
 
-  if (loading) return <p className="py-16 text-center text-muted-foreground">Loading…</p>;
+  // Profile fields (only needed the first time this account posts something)
+  const [pName, setPName] = useState("");
+  const [pPhone, setPPhone] = useState("");
+  const [pAddress, setPAddress] = useState("");
+  const [pAvatar, setPAvatar] = useState<File | null>(null);
+
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ["profile", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  if (loading || (userId && profileLoading))
+    return <p className="py-16 text-center text-muted-foreground">Loading…</p>;
   if (!userId)
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
