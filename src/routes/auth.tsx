@@ -29,6 +29,17 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+const DEVICE_KEY = "rdx_device_id";
+const DEVICE_DONE_KEY = "rdx_device_registered";
+function getDeviceId() {
+  let id = localStorage.getItem(DEVICE_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(DEVICE_KEY, id);
+  }
+  return id;
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"register" | "signin" | "pin">("register");
@@ -41,10 +52,21 @@ function AuthPage() {
   const [pin, setPin] = useState("");
   const avatarRef = useRef<HTMLInputElement>(null);
 
+  const [deviceLocked, setDeviceLocked] = useState(false);
+
   // Already signed in? Go straight to the PIN step (no profile setup again).
+  // Device already registered a profile? Only allow sign-in.
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setMode("pin");
+    });
+    const locked = () => {
+      setDeviceLocked(true);
+      setMode((m) => (m === "register" ? "signin" : m));
+    };
+    if (localStorage.getItem(DEVICE_DONE_KEY)) locked();
+    supabase.rpc("device_registered", { _device: getDeviceId() }).then(({ data }) => {
+      if (data) locked();
     });
   }, []);
 
@@ -60,6 +82,15 @@ function AuthPage() {
     if (!address.trim()) return void toast.error("Please enter your address");
     setBusy(true);
     try {
+      const deviceId = getDeviceId();
+      const { data: taken } = await supabase.rpc("device_registered", { _device: deviceId });
+      if (taken) {
+        localStorage.setItem(DEVICE_DONE_KEY, "1");
+        setDeviceLocked(true);
+        setMode("signin");
+        toast.error("This device already has a profile — please sign in.");
+        return;
+      }
       const { data, error } = await supabase.auth.signUp({
         email: authEmailFor(digits),
         password: authPasswordFor(digits),
@@ -82,8 +113,20 @@ function AuthPage() {
         address: address.trim(),
         phone: digits,
         avatar_path: avatarPath,
+        device_id: deviceId,
       });
-      if (pErr) throw pErr;
+      if (pErr) {
+        if (pErr.code === "23505" && pErr.message.includes("device")) {
+          await supabase.auth.signOut();
+          localStorage.setItem(DEVICE_DONE_KEY, "1");
+          setDeviceLocked(true);
+          setMode("signin");
+          throw new Error("This device already has a profile — please sign in.");
+        }
+        throw pErr;
+      }
+      localStorage.setItem(DEVICE_DONE_KEY, "1");
+      setDeviceLocked(true);
       toast.success("Welcome to RDX Market!");
       await afterAuth();
     } catch (e) {
@@ -204,14 +247,20 @@ function AuthPage() {
             >
               {busy ? "Please wait…" : mode === "register" ? "Register" : "Sign in"}
             </Button>
-            <button
-              className="w-full text-center text-sm font-medium text-accent hover:underline"
-              onClick={() => setMode(mode === "register" ? "signin" : "register")}
-            >
-              {mode === "register"
-                ? "Already registered? Sign in"
-                : "New here? Create an account"}
-            </button>
+            {deviceLocked ? (
+              <p className="text-center text-sm text-muted-foreground">
+                This device already has a profile. Sign in to continue.
+              </p>
+            ) : (
+              <button
+                className="w-full text-center text-sm font-medium text-accent hover:underline"
+                onClick={() => setMode(mode === "register" ? "signin" : "register")}
+              >
+                {mode === "register"
+                  ? "Already registered? Sign in"
+                  : "New here? Create an account"}
+              </button>
+            )}
           </CardContent>
         </Card>
       )}
