@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { CATEGORIES, uploadPhoto, type ListingType } from "@/lib/market";
+import { CATEGORIES, normalizeIndianPhone, uploadPhoto, type ListingType } from "@/lib/market";
 import { useSession } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
