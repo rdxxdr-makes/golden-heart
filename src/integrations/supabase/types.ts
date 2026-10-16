@@ -117,6 +117,7 @@ export type Database = {
           address: string
           avatar_path: string | null
           created_at: string
+          device_id: string | null
           id: string
           name: string
           phone: string
@@ -125,6 +126,7 @@ export type Database = {
           address: string
           avatar_path?: string | null
           created_at?: string
+          device_id?: string | null
           id: string
           name: string
           phone: string
@@ -133,6 +135,7 @@ export type Database = {
           address?: string
           avatar_path?: string | null
           created_at?: string
+          device_id?: string | null
           id?: string
           name?: string
           phone?: string
@@ -162,6 +165,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      device_registered: { Args: { _device: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
