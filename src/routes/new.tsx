@@ -91,6 +91,68 @@ function NewListingPage() {
       </div>
     );
 
+  // First time posting? Create the profile here (browsing and bidding never need one).
+  const createProfile = async () => {
+    const digits = normalizeIndianPhone(pPhone);
+    if (!pName.trim()) return void toast.error("Please enter your name");
+    if (!digits) return void toast.error("Enter a valid Indian mobile number");
+    if (!pAddress.trim()) return void toast.error("Please enter your address");
+    setBusy(true);
+    try {
+      let avatarPath: string | null = null;
+      if (pAvatar) avatarPath = await uploadPhoto(userId, pAvatar);
+      const { error } = await supabase.from("profiles").insert({
+        id: userId,
+        name: pName.trim(),
+        address: pAddress.trim(),
+        phone: digits,
+        avatar_path: avatarPath,
+      });
+      if (error) throw error;
+      toast.success("Profile created — now post your listing!");
+      queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not create profile");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!profile)
+    return (
+      <div className="mx-auto max-w-lg px-4 py-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>Create your profile first</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              You only need a profile to post a listing. Browsing and bidding don't need one.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="pname">Full name</Label>
+              <Input id="pname" value={pName} onChange={(e) => setPName(e.target.value)} maxLength={100} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pphone">Mobile number</Label>
+              <Input id="pphone" value={pPhone} onChange={(e) => setPPhone(e.target.value)} inputMode="tel" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="paddr">Address (kept private)</Label>
+              <Textarea id="paddr" value={pAddress} onChange={(e) => setPAddress(e.target.value)} rows={2} maxLength={300} />
+            </div>
+            <div className="space-y-2">
+              <Label>Profile photo (optional)</Label>
+              <input type="file" accept="image/*" className="text-sm" onChange={(e) => setPAvatar(e.target.files?.[0] ?? null)} />
+            </div>
+            <Button className="w-full" disabled={busy} onClick={createProfile}>
+              {busy ? "Saving…" : "Create profile"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+
   const submit = async () => {
     if (!title.trim()) return void toast.error("Add a title");
     if (!category) return void toast.error("Pick a category");
