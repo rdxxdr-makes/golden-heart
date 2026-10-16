@@ -8,7 +8,7 @@ import {
   normalizeIndianPhone,
   uploadPhoto,
 } from "@/lib/market";
-import { getMyRoles, redeemPin } from "@/lib/functions";
+import { redeemPin } from "@/lib/functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,24 +41,16 @@ function AuthPage() {
   const [pin, setPin] = useState("");
   const avatarRef = useRef<HTMLInputElement>(null);
 
-  // Already signed in? Decide between PIN step and home.
+  // Already signed in? Go straight to the PIN step (no profile setup again).
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) return;
-      try {
-        const { roles } = await getMyRoles();
-        if (roles.length === 0) setMode("pin");
-        else navigate({ to: "/" });
-      } catch {
-        /* stay */
-      }
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setMode("pin");
     });
-  }, [navigate]);
+  }, []);
 
+  // Every sign-in / registration continues to the PIN step, which picks the portal.
   const afterAuth = async () => {
-    const { roles } = await getMyRoles();
-    if (roles.length === 0) setMode("pin");
-    else navigate({ to: "/" });
+    setMode("pin");
   };
 
   const register = async () => {
