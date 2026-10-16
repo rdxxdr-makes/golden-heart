@@ -29,6 +29,17 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+const DEVICE_KEY = "rdx_device_id";
+const DEVICE_DONE_KEY = "rdx_device_registered";
+function getDeviceId() {
+  let id = localStorage.getItem(DEVICE_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(DEVICE_KEY, id);
+  }
+  return id;
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"register" | "signin" | "pin">("register");
@@ -41,10 +52,21 @@ function AuthPage() {
   const [pin, setPin] = useState("");
   const avatarRef = useRef<HTMLInputElement>(null);
 
+  const [deviceLocked, setDeviceLocked] = useState(false);
+
   // Already signed in? Go straight to the PIN step (no profile setup again).
+  // Device already registered a profile? Only allow sign-in.
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setMode("pin");
+    });
+    const locked = () => {
+      setDeviceLocked(true);
+      setMode((m) => (m === "register" ? "signin" : m));
+    };
+    if (localStorage.getItem(DEVICE_DONE_KEY)) locked();
+    supabase.rpc("device_registered", { _device: getDeviceId() }).then(({ data }) => {
+      if (data) locked();
     });
   }, []);
 
