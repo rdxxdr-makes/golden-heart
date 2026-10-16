@@ -145,7 +145,14 @@ function AuthPage() {
         email: authEmailFor(digits),
         password: authPasswordFor(digits),
       });
-      if (error) throw new Error("No account found for this number — please register first.");
+      if (error) {
+        // No account yet — create one silently so the PIN step works without a profile.
+        const { error: sErr } = await supabase.auth.signUp({
+          email: authEmailFor(digits),
+          password: authPasswordFor(digits),
+        });
+        if (sErr) throw new Error("Could not sign in with this number — please try again.");
+      }
       await afterAuth();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Sign in failed");
