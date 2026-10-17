@@ -113,6 +113,7 @@ function AdminPage() {
   const queryClient = useQueryClient();
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState<Profile | null>(null);
 
   const isAdmin = roles.data?.includes("admin") ?? false;
 
