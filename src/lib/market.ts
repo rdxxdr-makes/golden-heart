@@ -77,12 +77,55 @@ export async function signedPhotoUrl(path: string): Promise<string> {
   return data.signedUrl;
 }
 
+async function compressImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.size <= 1024 * 1024) {
+    return file;
+  }
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      const maxWidth = 1400;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return resolve(file);
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return resolve(file);
+          resolve(new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        0.75
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+    img.src = url;
+  });
+}
+
 export async function uploadPhoto(userId: string, file: File): Promise<string> {
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const processedFile = await compressImage(file);
+  const ext = processedFile.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${userId}/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage
     .from("listing-photos")
-    .upload(path, file, { cacheControl: "3600", upsert: false });
+    .upload(path, processedFile, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: processedFile.type,
+    });
   if (error) throw new Error(error.message);
   signedUrlCache.delete(path);
   return path;
