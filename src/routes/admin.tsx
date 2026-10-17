@@ -47,7 +47,63 @@ interface Profile {
   name: string;
   phone: string;
   address: string;
+  avatar_path: string | null;
   created_at: string;
+}
+
+function EditProfileDialog({ user, onSaved }: { user: Profile; onSaved: () => void }) {
+  const [name, setName] = useState(user.name);
+  const [phone, setPhone] = useState(user.phone);
+  const [address, setAddress] = useState(user.address);
+  const [avatar, setAvatar] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const save = async () => {
+    const digits = normalizeIndianPhone(phone);
+    if (!name.trim()) return void toast.error("Name is required");
+    if (!digits) return void toast.error("Enter a valid Indian mobile number");
+    if (!address.trim()) return void toast.error("Address is required");
+    setBusy(true);
+    try {
+      let avatarPath = user.avatar_path;
+      if (avatar) avatarPath = await uploadPhoto(user.id, avatar);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ name: name.trim(), phone: digits, address: address.trim(), avatar_path: avatarPath })
+        .eq("id", user.id);
+      if (error) throw error;
+      toast.success("Profile updated");
+      onSaved();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex items-center gap-4">
+        <ListingImage path={user.avatar_path ?? undefined} alt="Profile photo" className="h-16 w-16 rounded-full" />
+        <input type="file" accept="image/*" className="text-sm" onChange={(e) => setAvatar(e.target.files?.[0] ?? null)} />
+      </div>
+      <div className="space-y-2">
+        <Label>Full name</Label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
+      </div>
+      <div className="space-y-2">
+        <Label>Mobile number</Label>
+        <Input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
+      </div>
+      <div className="space-y-2">
+        <Label>Address</Label>
+        <Textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={2} maxLength={300} />
+      </div>
+      <Button className="w-full" disabled={busy} onClick={save}>
+        {busy ? "Saving…" : "Save changes"}
+      </Button>
+    </>
+  );
 }
 
 function AdminPage() {
@@ -79,7 +135,7 @@ function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, name, phone, address, created_at")
+        .select("id, name, phone, address, avatar_path, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as Profile[];
