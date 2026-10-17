@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Check, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatINR, normalizeIndianPhone, uploadPhoto, type Listing } from "@/lib/market";
+import { CATEGORIES, formatINR, normalizeIndianPhone, uploadPhoto, type Listing } from "@/lib/market";
 import { ListingImage } from "@/components/ListingCard";
 import { useMyRoles, useSession } from "@/components/AppHeader";
 import { Badge } from "@/components/ui/badge";
@@ -114,6 +114,8 @@ function AdminPage() {
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<Profile | null>(null);
+  const [editingPost, setEditingPost] = useState<Listing | null>(null);
+  const [postPhotos, setPostPhotos] = useState<File[]>([]);
 
   const isAdmin = roles.data?.includes("admin") ?? false;
 
@@ -198,6 +200,28 @@ function AdminPage() {
 
   const pending = (listings ?? []).filter((l) => l.status === "pending");
 
+  const savePost = async () => {
+    if (!editingPost) return;
+    if (!editingPost.title.trim() || !editingPost.location.trim()) return void toast.error("Title and location are required");
+    if (editingPost.type !== "donate" && (!editingPost.price || editingPost.price <= 0)) return void toast.error("Enter a valid price");
+    if (editingPost.type === "bid" && !editingPost.bid_deadline) return void toast.error("Set a bidding deadline");
+    setBusy(true);
+    try {
+      const photos = postPhotos.length ? await Promise.all(postPhotos.slice(0, 6).map((file) => uploadPhoto(userId, file))) : editingPost.photos;
+      const { data, error } = await supabase.from("listings").update({
+        title: editingPost.title.trim().slice(0, 120), description: editingPost.description.slice(0, 2000),
+        price: editingPost.type === "donate" ? null : editingPost.price,
+        category: editingPost.category, location: editingPost.location.trim().slice(0, 120),
+        bid_deadline: editingPost.type === "bid" ? editingPost.bid_deadline : null, photos,
+      }).eq("id", editingPost.id).select("id").single();
+      if (error || !data) throw error ?? new Error("Post was not saved");
+      setEditingPost(null);
+      await queryClient.invalidateQueries();
+      toast.success("Post updated");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Save failed"); }
+    finally { setBusy(false); }
+  };
+
   const renderRow = (l: Listing, withReason: boolean) => (
     <Card key={l.id}>
       <CardContent className="flex flex-wrap items-center gap-4 p-4">
@@ -241,6 +265,9 @@ function AdminPage() {
               </SelectContent>
             </Select>
           )}
+          <Button size="sm" variant="outline" disabled={busy} aria-label="Edit post" onClick={() => { setEditingPost(l); setPostPhotos([]); }}>
+            <Pencil className="h-4 w-4" />
+          </Button>
           <Button size="sm" variant="outline" disabled={busy} onClick={() => remove(l)}>
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -292,6 +319,21 @@ function AdminPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      <Dialog open={!!editingPost} onOpenChange={(open) => !open && setEditingPost(null)}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit post</DialogTitle></DialogHeader>
+          {editingPost && <div className="space-y-4">
+            <div><Label htmlFor="post-title">Title</Label><Input id="post-title" value={editingPost.title} maxLength={120} onChange={(e) => setEditingPost({ ...editingPost, title: e.target.value })} /></div>
+            <div><Label htmlFor="post-description">Description</Label><Textarea id="post-description" value={editingPost.description} maxLength={2000} onChange={(e) => setEditingPost({ ...editingPost, description: e.target.value })} /></div>
+            {editingPost.type !== "donate" && <div><Label htmlFor="post-price">Price (₹)</Label><Input id="post-price" type="number" min="1" value={editingPost.price ?? ""} onChange={(e) => setEditingPost({ ...editingPost, price: Number(e.target.value) })} /></div>}
+            <div><Label>Category</Label><Select value={editingPost.category} onValueChange={(category) => setEditingPost({ ...editingPost, category })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CATEGORIES.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label htmlFor="post-location">Location</Label><Input id="post-location" value={editingPost.location} maxLength={120} onChange={(e) => setEditingPost({ ...editingPost, location: e.target.value })} /></div>
+            {editingPost.type === "bid" && <div><Label htmlFor="post-deadline">Bidding deadline</Label><Input id="post-deadline" type="datetime-local" value={editingPost.bid_deadline ? new Date(new Date(editingPost.bid_deadline).getTime() - new Date(editingPost.bid_deadline).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""} onChange={(e) => setEditingPost({ ...editingPost, bid_deadline: e.target.value ? new Date(e.target.value).toISOString() : null })} /></div>}
+            <div><Label htmlFor="post-photos">Replace photos (up to 6)</Label><input id="post-photos" type="file" accept="image/*" multiple onChange={(e) => setPostPhotos(Array.from(e.target.files ?? []).slice(0, 6))} /></div>
+            <Button disabled={busy} onClick={savePost}>{busy ? "Saving…" : "Save post"}</Button>
+          </div>}
+        </DialogContent>
+      </Dialog>
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>

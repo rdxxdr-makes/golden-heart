@@ -1,0 +1,4 @@
+- [ ] Require backend-verified portal access before displaying app content.
+- [ ] Bind posting profiles to the existing persistent device identifier.
+- [ ] Add admin post editing using existing backend permissions.
+- [ ] Run targeted tests and preview checks.

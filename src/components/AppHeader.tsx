@@ -54,9 +54,10 @@ export function AppHeader() {
   const [open, setOpen] = useState(false);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await queryClient.cancelQueries();
     queryClient.clear();
-    navigate({ to: "/" });
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
   };
 
   const links = (
@@ -97,7 +98,7 @@ export function AppHeader() {
         <div className="ml-auto flex items-center gap-2">
           {userId ? (
             <>
-              <Link to="/profile" className="hidden text-sm font-medium text-foreground/80 hover:text-foreground sm:block">
+              <Link to="/profile" className="text-sm font-medium text-foreground/80 hover:text-foreground">
                 Profile
               </Link>
               <Button variant="outline" size="sm" onClick={signOut}>
