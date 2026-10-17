@@ -10,3 +10,6 @@
 <!-- LOVABLE:END -->
 
 - Portal PINs are verified in the database (redeem_portal_pin RPC against bcrypt hashes in portal_pins); never put PINs or service keys in app code or env — keeps the app deployable with only the public URL + publishable key.
+- The root content gate checks backend-issued roles; restrictive listing RLS enforces portal access independently of React.
+- Posting creates profiles with the shared browser device identifier; database uniqueness and immutable-device triggers prevent reuse or removal, without fingerprinting physical devices.
+- Admin post edits use ordinary authenticated client updates under existing admin RLS, preserving owner and approval status.
