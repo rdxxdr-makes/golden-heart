@@ -13,7 +13,9 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
-import { AppHeader } from "@/components/AppHeader";
+import { AppHeader, useSession, useMyRoles } from "@/components/AppHeader";
+import { AuthPage } from "@/routes/auth";
+import { hasPortalAccess } from "@/lib/access";
 import { AppFooter } from "@/components/AppFooter";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -135,11 +137,21 @@ function RootComponent() {
         <AppHeader />
         <main className="flex-1">
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
+          <PortalContent />
         </main>
         <AppFooter />
       </div>
       <Toaster richColors position="top-center" />
     </QueryClientProvider>
   );
+}
+
+function PortalContent() {
+  const { userId, loading } = useSession();
+  const roles = useMyRoles(userId);
+  if (loading || (userId && roles.isLoading)) {
+    return <p className="py-16 text-center text-muted-foreground">Loading…</p>;
+  }
+  if (!hasPortalAccess(roles.data)) return <AuthPage />;
+  return <Outlet />;
 }

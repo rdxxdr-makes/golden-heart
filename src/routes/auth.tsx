@@ -9,6 +9,8 @@ import {
   uploadPhoto,
 } from "@/lib/market";
 import { redeemPin } from "@/lib/functions";
+import { getDeviceId } from "@/lib/access";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,20 +31,13 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-const DEVICE_KEY = "rdx_device_id";
 const DEVICE_DONE_KEY = "rdx_device_registered";
-function getDeviceId() {
-  let id = localStorage.getItem(DEVICE_KEY);
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem(DEVICE_KEY, id);
-  }
-  return id;
-}
 
-function AuthPage() {
+export function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"register" | "signin" | "pin">("register");
+  const queryClient = useQueryClient();
+  const [mode, setMode] = useState<"register" | "signin" | "pin">("pin");
+  const [signedIn, setSignedIn] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const [name, setName] = useState("");
@@ -58,6 +53,7 @@ function AuthPage() {
   // Device already registered a profile? Only allow sign-in.
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
+      setSignedIn(!!data.user);
       if (data.user) setMode("pin");
     });
     const locked = () => {
@@ -165,7 +161,20 @@ function AuthPage() {
     if (!pin.trim()) return;
     setBusy(true);
     try {
+      if (!signedIn) {
+        const digits = normalizeIndianPhone(phone);
+        if (!digits) throw new Error("Enter a valid Indian mobile number");
+        const credentials = { email: authEmailFor(digits), password: authPasswordFor(digits) };
+        const result = await supabase.auth.signInWithPassword(credentials);
+        if (result.error) {
+          const signup = await supabase.auth.signUp(credentials);
+          if (signup.error) throw signup.error;
+          if (!signup.data.session) throw new Error("Could not start your session. Please try signing in.");
+        }
+        setSignedIn(true);
+      }
       const { role } = await redeemPin({ data: { pin: pin.trim() } });
+      await queryClient.invalidateQueries({ queryKey: ["my-roles"] });
       toast.success(role === "admin" ? "Admin access granted" : "Welcome in!");
       navigate({ to: role === "admin" ? "/admin" : "/" });
     } catch (e) {
@@ -183,6 +192,12 @@ function AuthPage() {
             <CardTitle>Enter your portal PIN</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {!signedIn && (
+              <div className="space-y-2">
+                <Label htmlFor="entry-phone">Mobile number</Label>
+                <Input id="entry-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">
               Enter the access PIN you were given to unlock your portal.
             </p>
@@ -190,6 +205,7 @@ function AuthPage() {
               <Label htmlFor="pin">PIN</Label>
               <Input
                 id="pin"
+                 type="password"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 placeholder="Enter PIN"

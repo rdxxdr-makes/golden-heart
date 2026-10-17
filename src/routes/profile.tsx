@@ -48,10 +48,11 @@ function ProfilePage() {
     queryKey: ["profile", userId],
     enabled: !!userId,
     queryFn: async () => {
+      if (!userId) return null;
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", userId!)
+        .eq("id", userId)
         .maybeSingle();
       if (error) throw error;
       return data as unknown as Profile | null;
@@ -66,7 +67,7 @@ function ProfilePage() {
     }
   }, [profile]);
 
-  if (loading || isLoading) return <p className="py-16 text-center text-muted-foreground">Loading…</p>;
+  if (loading || (userId && isLoading)) return <p className="py-16 text-center text-muted-foreground">Loading…</p>;
   if (!userId)
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
@@ -74,6 +75,8 @@ function ProfilePage() {
         <Button className="mt-4" onClick={() => navigate({ to: "/auth" })}>Go to sign in</Button>
       </div>
     );
+
+  if (!profile) return <div className="mx-auto max-w-md px-4 py-16 text-center"><p>You don’t have a posting profile yet.</p><Button className="mt-4" onClick={() => navigate({ to: "/new", search: { type: "sell" } })}>Create posting profile</Button></div>;
 
   const save = async () => {
     const digits = normalizeIndianPhone(phone);

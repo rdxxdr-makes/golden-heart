@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CATEGORIES, normalizeIndianPhone, uploadPhoto, type ListingType } from "@/lib/market";
+import { getDeviceId } from "@/lib/access";
 import { useSession } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,10 +70,11 @@ function NewListingPage() {
     queryKey: ["profile", userId],
     enabled: !!userId,
     queryFn: async () => {
+      if (!userId) return null;
       const { data, error } = await supabase
         .from("profiles")
         .select("id")
-        .eq("id", userId!)
+        .eq("id", userId)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -106,9 +108,11 @@ function NewListingPage() {
         name: pName.trim(),
         address: pAddress.trim(),
         phone: digits,
+        device_id: getDeviceId(),
         avatar_path: avatarPath,
       });
       if (error) throw error;
+      localStorage.setItem("rdx_device_registered", "1");
       toast.success("Profile created — now post your listing!");
       queryClient.invalidateQueries({ queryKey: ["profile", userId] });
     } catch (e) {
