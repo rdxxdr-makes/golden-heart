@@ -292,6 +292,24 @@ function AdminPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit profile</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {editing && (
+              <EditProfileDialog
+                user={editing}
+                onSaved={() => {
+                  setEditing(null);
+                  queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+                }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
