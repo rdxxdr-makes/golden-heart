@@ -282,6 +282,9 @@ function AdminPage() {
                     <p className="text-muted-foreground">{u.address}</p>
                   </div>
                   <p className="font-mono text-xs text-muted-foreground">+{u.phone}</p>
+                  <Button size="sm" variant="outline" onClick={() => setEditing(u)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
             </CardContent>
